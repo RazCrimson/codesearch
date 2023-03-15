@@ -302,8 +302,8 @@ func (q *Query) String() string {
 		tjoin string
 	)
 	if q.Op == QAnd {
-		sjoin = " "
-		tjoin = " "
+		sjoin = "\n"
+		tjoin = "\n"
 	} else {
 		s = "("
 		sjoin = ")|("
@@ -326,6 +326,57 @@ func (q *Query) String() string {
 		}
 	}
 	s += end
+	return s
+}
+
+func (q *Query) Binary() []byte {
+	if q == nil {
+		return []byte("?")
+	}
+	if q.Op == QNone {
+		return []byte("-")
+	}
+	if q.Op == QAll {
+		return []byte("+")
+	}
+
+	if len(q.Sub) == 0 && len(q.Trigram) == 1 {
+		return []byte(q.Trigram[0])
+	}
+
+	var (
+		s     []byte
+		sjoin []byte
+		end   []byte
+		tjoin []byte
+	)
+	if q.Op == QAnd {
+		sjoin = []byte("\n")
+		tjoin = []byte("\n")
+	} else {
+		s = []byte("(")
+		sjoin = []byte(")|(")
+		end = []byte(")")
+		tjoin = []byte("|")
+	}
+	for i, t := range q.Trigram {
+		if i > 0 {
+			s = append(s, tjoin...)
+		}
+		s = append(s, []byte(t)...)
+	}
+	if len(q.Sub) > 0 {
+		if len(q.Trigram) > 0 {
+			s = append(s, sjoin...)
+		}
+		s = append(s, q.Sub[0].Binary()...)
+		for i := 1; i < len(q.Sub); i++ {
+			s = append(s, sjoin...)
+			s = append(s, q.Sub[i].Binary()...)
+		}
+
+	}
+	s = append(s, end...)
 	return s
 }
 
